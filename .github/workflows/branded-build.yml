@@ -1,0 +1,90 @@
+# Copy to .github/workflows/branded-build.yml in your fork of rustdesk/rustdesk, and copy
+# rustdesk/client-build/patch-rustdesk.mjs + lib/branding.mjs into branding/ in the fork.
+#
+# Run it from the Actions tab with a company's values (Operator panel -> Company -> Client config).
+# It patches src/common.rs, pushes branch brand/<slug>-<variant>, and dispatches the fork's
+# stock "Flutter Nightly Build" on that branch, which uploads the installers as artifacts.
+# Download them and upload them in Operator panel -> Releases (audience: that company).
+#
+# Fork settings -> Secrets and variables -> Actions -> Variables:
+#   RD_HOST      rd.gccare.vip            ID server (hbbs)
+#   RD_RELAY     rd.gccare.vip:21117      relay (hbbr)
+#   RD_KEY       contents of id_ed25519.pub from the hbbs server
+#   RD_API_BASE  https://loomoreach.org   loomoreach-backend, clients report to {RD_API_BASE}/r/<enroll token>
+name: Branded client build
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: Company slug (used for the branch name)
+        required: true
+      variant:
+        description: client = end users (click to accept), agent = technicians
+        type: choice
+        options: [client, agent]
+        default: client
+      enroll_token:
+        description: Company enroll token
+        required: true
+      app_name:
+        description: Window title / app name (optional)
+        required: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check variables
+        run: |
+          for v in RD_HOST RD_KEY RD_API_BASE; do
+            if [ -z "${!v}" ]; then echo "::error::Repository variable $v is not set (Settings -> Secrets and variables -> Actions -> Variables)"; exit 1; fi
+          done
+          test -f branding/patch-rustdesk.mjs || { echo "::error::branding/patch-rustdesk.mjs is missing - copy rustdesk/client-build/*.mjs and lib/ into branding/"; exit 1; }
+        env:
+          RD_HOST: ${{ vars.RD_HOST }}
+          RD_KEY: ${{ vars.RD_KEY }}
+          RD_API_BASE: ${{ vars.RD_API_BASE }}
+
+      - name: Patch
+        env:
+          RD_HOST: ${{ vars.RD_HOST }}
+          RD_RELAY: ${{ vars.RD_RELAY }}
+          RD_KEY: ${{ vars.RD_KEY }}
+          RD_API_BASE: ${{ vars.RD_API_BASE }}
+          RD_ENROLL_TOKEN: ${{ inputs.enroll_token }}
+          RD_VARIANT: ${{ inputs.variant }}
+          RD_APP_NAME: ${{ inputs.app_name }}
+        run: |
+          echo "::add-mask::$RD_ENROLL_TOKEN"
+          node branding/patch-rustdesk.mjs --rustdesk-dir .
+
+      - name: Push branch
+        id: push
+        run: |
+          branch="brand/${{ inputs.slug }}-${{ inputs.variant }}"
+          git config user.name "branding-bot"
+          git config user.email "branding-bot@users.noreply.github.com"
+          git checkout -B "$branch"
+          git commit -am "Branding: ${{ inputs.slug }} (${{ inputs.variant }})"
+          git push -f origin "$branch"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: Start build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run flutter-nightly.yml --ref "${{ steps.push.outputs.branch }}"
+          echo "Build dispatched on ${{ steps.push.outputs.branch }} - open the 'Flutter Nightly Build' run for the installers (Windows .exe, macOS .dmg, Android .apk, Linux)." >> "$GITHUB_STEP_SUMMARY"
