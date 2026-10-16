@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/animated_rotation_widget.dart';
 import 'package:flutter_hbb/common/widgets/custom_password.dart';
+import 'package:flutter_hbb/common/widgets/loomoreach_style.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
@@ -23,7 +24,6 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:window_size/window_size.dart' as window_size;
-import '../widgets/button.dart';
 
 class DesktopHomePage extends StatefulWidget {
   const DesktopHomePage({Key? key}) : super(key: key);
@@ -86,7 +86,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           child: loadPowered(context),
         ),
       Align(
-        alignment: Alignment.center,
+        alignment:
+            bind.isCustomClient() ? Alignment.centerLeft : Alignment.center,
         child: loadLogo(),
       ),
       buildTip(context),
@@ -126,11 +127,20 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       ]);
     }
     final textColor = Theme.of(context).textTheme.titleLarge?.color;
+    final dark = LmColors.isDark(context);
     return ChangeNotifierProvider.value(
       value: gFFI.serverModel,
       child: Container(
-        width: isIncomingOnly ? 280.0 : 200.0,
-        color: Theme.of(context).colorScheme.background,
+        width: isIncomingOnly ? 280.0 : 232.0,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: dark
+                ? [const Color(0xFF17122E), LmColors.nightPanel]
+                : [const Color(0xFFEDE7FD), LmColors.soft],
+          ),
+        ),
         child: Stack(
           children: [
             Column(
@@ -185,68 +195,71 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     );
   }
 
+  Widget _boardLabel(BuildContext context, String text) => Text(
+        translate(text).toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1.1,
+          color: LmColors.muted(context),
+        ),
+      );
+
+  Widget _copyButton(BuildContext context, String Function() value) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () {
+        Clipboard.setData(ClipboardData(text: value()));
+        showToast(translate("Copied"));
+      },
+      child: Tooltip(
+        message: translate('Copy'),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(Icons.copy_rounded,
+              size: 17, color: LmColors.muted(context)),
+        ),
+      ),
+    );
+  }
+
   buildIDBoard(BuildContext context) {
     final model = gFFI.serverModel;
-    return Container(
-      margin: const EdgeInsets.only(left: 20, right: 11),
-      height: 57,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
+    return LmCard(
+      glow: true,
+      margin: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+      padding: const EdgeInsets.fromLTRB(14, 10, 8, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 2,
-            decoration: const BoxDecoration(color: MyTheme.accent),
-          ).marginOnly(top: 5),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 7),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    height: 25,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          translate("ID"),
-                          style: TextStyle(
-                              fontSize: 14,
-                              color: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.color
-                                  ?.withOpacity(0.5)),
-                        ).marginOnly(top: 5),
-                        buildPopupMenu(context)
-                      ],
-                    ),
-                  ),
-                  Flexible(
-                    child: GestureDetector(
-                      onDoubleTap: () {
-                        Clipboard.setData(
-                            ClipboardData(text: model.serverId.text));
-                        showToast(translate("Copied"));
-                      },
-                      child: TextFormField(
-                        controller: model.serverId,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.only(top: 10, bottom: 10),
-                        ),
-                        style: TextStyle(
-                          fontSize: 22,
-                        ),
-                      ).workaroundFreezeLinuxMint(),
-                    ),
-                  )
-                ],
+          Row(
+            children: [
+              Expanded(child: _boardLabel(context, "ID")),
+              _copyButton(context, () => model.serverId.text),
+              buildPopupMenu(context),
+            ],
+          ),
+          GestureDetector(
+            onDoubleTap: () {
+              Clipboard.setData(ClipboardData(text: model.serverId.text));
+              showToast(translate("Copied"));
+            },
+            child: TextFormField(
+              controller: model.serverId,
+              readOnly: true,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                filled: false,
+                isDense: true,
+                contentPadding: EdgeInsets.only(top: 4, bottom: 8),
               ),
-            ),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                letterSpacing: .6,
+                color: LmColors.isDark(context) ? Colors.white : LmColors.ink,
+              ),
+            ).workaroundFreezeLinuxMint(),
           ),
         ],
       ),
@@ -262,10 +275,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         message: translate('Settings'),
         child: Obx(
           () => CircleAvatar(
-            radius: 15,
+            radius: 14,
             backgroundColor: hover.value
-                ? Theme.of(context).scaffoldBackgroundColor
-                : Theme.of(context).colorScheme.background,
+                ? LmColors.purple.withOpacity(.18)
+                : Colors.transparent,
             child: Icon(
               Icons.more_vert_outlined,
               size: 20,
@@ -294,92 +307,127 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     final textColor = Theme.of(context).textTheme.titleLarge?.color;
     final showOneTime = model.approveMode != 'click' &&
         model.verificationMethod != kUsePermanentPassword;
-    return Container(
-      margin: EdgeInsets.only(left: 20.0, right: 16, top: 13, bottom: 13),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Container(
-            width: 2,
-            height: 52,
-            decoration: BoxDecoration(color: MyTheme.accent),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 7),
+    const margin = EdgeInsets.fromLTRB(14, 10, 14, 12);
+    final iconIdle = LmColors.muted(context);
+
+    if (model.approveMode == 'click') {
+      return LmCard(
+        margin: margin,
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: LmColors.ok.withOpacity(.14),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.verified_user_rounded,
+                  size: 19, color: LmColors.ok),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AutoSizeText(
-                    translate("One-time Password"),
-                    style: TextStyle(
-                        fontSize: 14, color: textColor?.withOpacity(0.5)),
-                    maxLines: 1,
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onDoubleTap: () {
-                            if (showOneTime) {
-                              Clipboard.setData(
-                                  ClipboardData(text: model.serverPasswd.text));
-                              showToast(translate("Copied"));
-                            }
-                          },
-                          child: TextFormField(
-                            controller: model.serverPasswd,
-                            readOnly: true,
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              contentPadding:
-                                  EdgeInsets.only(top: 14, bottom: 10),
-                            ),
-                            style: TextStyle(fontSize: 15),
-                          ).workaroundFreezeLinuxMint(),
-                        ),
-                      ),
-                      if (showOneTime)
-                        AnimatedRotationWidget(
-                          onPressed: () => bind.mainUpdateTemporaryPassword(),
-                          child: Tooltip(
-                            message: translate('Refresh Password'),
-                            child: Obx(() => RotatedBox(
-                                quarterTurns: 2,
-                                child: Icon(
-                                  Icons.refresh,
-                                  color: refreshHover.value
-                                      ? textColor
-                                      : Color(0xFFDDDDDD),
-                                  size: 22,
-                                ))),
-                          ),
-                          onHover: (value) => refreshHover.value = value,
-                        ).marginOnly(right: 8, top: 4),
-                      if (!bind.isDisableSettings())
-                        InkWell(
-                          child: Tooltip(
-                            message: translate('Change Password'),
-                            child: Obx(
-                              () => Icon(
-                                Icons.edit,
-                                color: editHover.value
-                                    ? textColor
-                                    : Color(0xFFDDDDDD),
-                                size: 22,
-                              ).marginOnly(right: 8, top: 4),
-                            ),
-                          ),
-                          onTap: () => DesktopSettingPage.switch2page(
-                              SettingsTabKey.safety),
-                          onHover: (value) => editHover.value = value,
-                        ),
-                    ],
+                  _boardLabel(context, "Access"),
+                  const SizedBox(height: 3),
+                  Text(
+                    translate("You approve every request"),
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
             ),
+          ],
+        ),
+      );
+    }
+
+    return LmCard(
+      margin: margin,
+      padding: const EdgeInsets.fromLTRB(14, 10, 8, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: AutoSizeText(
+                  translate("One-time Password").toUpperCase(),
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.1,
+                    color: LmColors.muted(context),
+                  ),
+                ),
+              ),
+              if (showOneTime)
+                _copyButton(context, () => model.serverPasswd.text),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onDoubleTap: () {
+                    if (showOneTime) {
+                      Clipboard.setData(
+                          ClipboardData(text: model.serverPasswd.text));
+                      showToast(translate("Copied"));
+                    }
+                  },
+                  child: TextFormField(
+                    controller: model.serverPasswd,
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      filled: false,
+                      isDense: true,
+                      contentPadding: EdgeInsets.only(top: 6, bottom: 8),
+                    ),
+                    style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.5),
+                  ).workaroundFreezeLinuxMint(),
+                ),
+              ),
+              if (showOneTime)
+                AnimatedRotationWidget(
+                  onPressed: () => bind.mainUpdateTemporaryPassword(),
+                  child: Tooltip(
+                    message: translate('Refresh Password'),
+                    child: Obx(() => RotatedBox(
+                        quarterTurns: 2,
+                        child: Icon(
+                          Icons.refresh,
+                          color: refreshHover.value ? textColor : iconIdle,
+                          size: 20,
+                        ))),
+                  ),
+                  onHover: (value) => refreshHover.value = value,
+                ).marginOnly(right: 6),
+              if (!bind.isDisableSettings())
+                InkWell(
+                  child: Tooltip(
+                    message: translate('Change Password'),
+                    child: Obx(
+                      () => Icon(
+                        Icons.edit_rounded,
+                        color: editHover.value ? textColor : iconIdle,
+                        size: 19,
+                      ).marginOnly(right: 6),
+                    ),
+                  ),
+                  onTap: () =>
+                      DesktopSettingPage.switch2page(SettingsTabKey.safety),
+                  onHover: (value) => editHover.value = value,
+                ),
+            ],
           ),
         ],
       ),
@@ -390,38 +438,26 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     final isOutgoingOnly = bind.isOutgoingOnly();
     return Padding(
       padding:
-          const EdgeInsets.only(left: 20.0, right: 16, top: 16.0, bottom: 5),
+          const EdgeInsets.only(left: 18.0, right: 16, top: 18.0, bottom: 2),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            children: [
-              if (!isOutgoingOnly)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    translate("Your Desktop"),
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ),
-            ],
-          ),
-          SizedBox(
-            height: 10.0,
-          ),
           if (!isOutgoingOnly)
             Text(
-              translate("desk_tip"),
-              overflow: TextOverflow.clip,
-              style: Theme.of(context).textTheme.bodySmall,
+              translate("Your Desktop"),
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -.2),
             ),
-          if (isOutgoingOnly)
-            Text(
-              translate("outgoing_only_desk_tip"),
-              overflow: TextOverflow.clip,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+          const SizedBox(height: 6),
+          Text(
+            translate(isOutgoingOnly ? "outgoing_only_desk_tip" : "desk_tip"),
+            overflow: TextOverflow.clip,
+            style: TextStyle(
+                fontSize: 12, height: 1.45, color: LmColors.muted(context)),
+          ),
         ],
       ),
     );
@@ -601,22 +637,25 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       }
     }
 
+    final cardTop = (marginTop - 8).clamp(6.0, 40.0);
     return Stack(
       children: [
         Container(
           margin: EdgeInsets.fromLTRB(
-              0, marginTop, 0, bind.isIncomingOnly() ? marginTop : 0),
+              14, cardTop, 14, bind.isIncomingOnly() ? marginTop : 12),
           child: Container(
               decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  Color.fromARGB(255, 226, 66, 188),
-                  Color.fromARGB(255, 244, 114, 124),
+                gradient: LmColors.brandGradient,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: LmColors.purple.withOpacity(.35),
+                    blurRadius: 22,
+                    offset: const Offset(0, 8),
+                  ),
                 ],
-              )),
-              padding: EdgeInsets.all(20),
+              ),
+              padding: EdgeInsets.fromLTRB(18, 18, 18, 16),
               child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -648,16 +687,29 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                               Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    FixedWidthButton(
-                                      width: 150,
-                                      padding: 8,
-                                      isOutline: true,
-                                      text: translate(btnText),
-                                      textColor: Colors.white,
-                                      borderColor: Colors.white,
-                                      textSize: 20,
-                                      radius: 10,
-                                      onTap: onPressed,
+                                    Expanded(
+                                      child: Material(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(11),
+                                        child: InkWell(
+                                          borderRadius:
+                                              BorderRadius.circular(11),
+                                          onTap: onPressed,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 10),
+                                            child: Text(
+                                              translate(btnText),
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(
+                                                color: LmColors.purpleDark,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     )
                                   ])
                             ]
@@ -681,13 +733,13 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         ),
         if (closeButton != null && closeButton == true)
           Positioned(
-            top: 18,
-            right: 0,
+            top: cardTop + 2,
+            right: 14,
             child: IconButton(
               icon: Icon(
                 Icons.close,
-                color: Colors.white,
-                size: 20,
+                color: Colors.white70,
+                size: 18,
               ),
               onPressed: closeCard,
             ),

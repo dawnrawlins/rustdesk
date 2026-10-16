@@ -18,6 +18,7 @@ import '../../common.dart';
 import '../../common/formatter/id_formatter.dart';
 import '../../common/widgets/peer_tab_page.dart';
 import '../../common/widgets/autocomplete.dart';
+import '../../common/widgets/loomoreach_style.dart';
 import '../../models/platform_model.dart';
 import '../../desktop/widgets/material_mod_popup_menu.dart' as mod_menu;
 
@@ -80,7 +81,8 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
 
     setupServerWidget() => Flexible(
           child: Offstage(
-            offstage: !(!_svcStopped.value &&
+            offstage: bind.isCustomClient() ||
+                !(!_svcStopped.value &&
                 stateGlobal.svcStatus.value == SvcStatus.ready &&
                 _svcIsUsingPublicServer.value),
             child: Row(
@@ -112,22 +114,19 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
     basicWidget() => Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              height: 8,
-              width: 8,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(4),
+            Flexible(
+              child: LmStatusPill(
                 color: _svcStopped.value ||
                         stateGlobal.svcStatus.value == SvcStatus.connecting
                     ? kColorWarn
                     : (stateGlobal.svcStatus.value == SvcStatus.ready
-                        ? Color.fromARGB(255, 50, 190, 166)
-                        : Color.fromARGB(255, 224, 79, 95)),
-              ),
-            ).marginSymmetric(horizontal: em),
-            Container(
-              width: isIncomingOnly ? 226 : null,
-              child: _buildConnStatusMsg(),
+                        ? LmColors.ok
+                        : const Color(0xFFF0607A)),
+                label: Container(
+                  width: isIncomingOnly ? 200 : null,
+                  child: _buildConnStatusMsg(),
+                ),
+              ).marginSymmetric(horizontal: 12),
             ),
             // stop
             if (!isIncomingOnly) startServiceWidget(),
@@ -139,6 +138,7 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
 
     return Container(
       height: height,
+      color: isIncomingOnly ? null : LmColors.panel(context),
       child: Obx(() => isIncomingOnly
           ? Column(
               children: [
@@ -163,7 +163,8 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
               : stateGlobal.svcStatus.value == SvcStatus.notReady
                   ? translate("not_ready_status")
                   : translate('Ready'),
-      style: TextStyle(fontSize: em),
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
     );
   }
 
@@ -343,12 +344,26 @@ class _ConnectionPageState extends State<ConnectionPage>
   /// UI for the remote ID TextField.
   /// Search for a peer.
   Widget _buildRemoteIDTextField(BuildContext context) {
+    final dark = LmColors.isDark(context);
+    final fieldBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: LmColors.border(context)),
+    );
     var w = Container(
       width: 320 + 20 * 2,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
       decoration: BoxDecoration(
-          borderRadius: const BorderRadius.all(Radius.circular(13)),
-          border: Border.all(color: Theme.of(context).colorScheme.background)),
+        color: LmColors.card(context),
+        borderRadius: const BorderRadius.all(Radius.circular(18)),
+        border: Border.all(color: LmColors.purple.withOpacity(dark ? .4 : .25)),
+        boxShadow: [
+          BoxShadow(
+            color: LmColors.purple.withOpacity(dark ? .2 : .1),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
       child: Ink(
         child: Column(
           children: [
@@ -428,13 +443,23 @@ class _ConnectionPageState extends State<ConnectionPage>
                           cursorColor:
                               Theme.of(context).textTheme.titleLarge?.color,
                           decoration: InputDecoration(
-                              filled: false,
+                              filled: true,
+                              fillColor:
+                                  dark ? LmColors.nightField : LmColors.soft,
+                              border: fieldBorder,
+                              enabledBorder: fieldBorder,
+                              focusedBorder: fieldBorder.copyWith(
+                                  borderSide: const BorderSide(
+                                      color: LmColors.violet, width: 1.4)),
                               counterText: '',
                               hintText: _idInputFocused.value
                                   ? null
                                   : translate('Enter Remote ID'),
+                              hintStyle: TextStyle(
+                                  fontSize: 18,
+                                  color: LmColors.muted(context)),
                               contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 15, vertical: 13)),
+                                  horizontal: 15, vertical: 11)),
                           controller: fieldTextEditingController,
                           inputFormatters: [IDTextInputFormatter()],
                           onChanged: (v) {
@@ -516,24 +541,24 @@ class _ConnectionPageState extends State<ConnectionPage>
               ],
             ),
             Padding(
-              padding: const EdgeInsets.only(top: 13.0),
+              padding: const EdgeInsets.only(top: 16.0),
               child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                SizedBox(
-                  height: 28.0,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      onConnect();
-                    },
-                    child: Text(translate("Connect")),
-                  ),
+                LmGradientButton(
+                  height: 34,
+                  text: translate("Connect"),
+                  icon: Icons.arrow_forward_rounded,
+                  onPressed: () {
+                    onConnect();
+                  },
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  height: 28.0,
-                  width: 28.0,
+                  height: 34.0,
+                  width: 34.0,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                    borderRadius: BorderRadius.circular(8),
+                    color: dark ? LmColors.nightField : LmColors.soft,
+                    border: Border.all(color: LmColors.border(context)),
+                    borderRadius: BorderRadius.circular(17),
                   ),
                   child: Center(
                     child: StatefulBuilder(
