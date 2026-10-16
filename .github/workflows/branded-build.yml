@@ -3,8 +3,9 @@
 #
 # Run it from the Actions tab with a company's values (Operator panel -> Company -> Client config).
 # It patches src/common.rs, pushes branch brand/<slug>-<variant>, and dispatches the fork's
-# stock "Flutter Nightly Build" on that branch, which uploads the installers as artifacts.
-# Download them and upload them in Operator panel -> Releases (audience: that company).
+# stock "Flutter Nightly Build" on that branch, which publishes the installers to the GitHub
+# release tagged brand-<slug>-<variant>. GCCare -> Releases -> "Import latest app build" pulls
+# them from there (end-user app = client, technician app = agent).
 #
 # Fork settings -> Secrets and variables -> Actions -> Variables:
 #   RD_HOST      rd.gccare.vip            ID server (hbbs)
@@ -71,6 +72,14 @@ jobs:
           echo "::add-mask::$RD_ENROLL_TOKEN"
           node branding/patch-rustdesk.mjs --rustdesk-dir .
 
+      - name: Give this variant its own release tag
+        # client and agent builds would otherwise overwrite each other under "nightly".
+        run: |
+          tag="brand-${{ inputs.slug }}-${{ inputs.variant }}"
+          sed -i "s/upload-tag: \"nightly\"/upload-tag: \"$tag\"/" .github/workflows/flutter-nightly.yml
+          grep -q "upload-tag: \"$tag\"" .github/workflows/flutter-nightly.yml || { echo "::error::could not set upload-tag in flutter-nightly.yml"; exit 1; }
+          echo "Installers will be published to the GitHub release tagged $tag" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Push branch
         id: push
         run: |
@@ -87,4 +96,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh workflow run flutter-nightly.yml --ref "${{ steps.push.outputs.branch }}"
-          echo "Build dispatched on ${{ steps.push.outputs.branch }} - open the 'Flutter Nightly Build' run for the installers (Windows .exe, macOS .dmg, Android .apk, Linux)." >> "$GITHUB_STEP_SUMMARY"
+          echo "Build dispatched on ${{ steps.push.outputs.branch }} - when the 'Flutter Nightly Build' run finishes, import the installers in GCCare -> Releases -> Import latest app build (${{ inputs.variant }})." >> "$GITHUB_STEP_SUMMARY"
