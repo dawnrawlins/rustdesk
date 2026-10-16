@@ -7,6 +7,21 @@ export const VARIANTS = {
   agent: {},
 };
 
+/**
+ * Compile-time switches that cannot be changed by the user or by settings.
+ * The end-user build is a small status window: ID, access mode, install banner and
+ * connection status. No "connect to" box, address book, account or settings.
+ */
+export const HARD_VARIANTS = {
+  client: {
+    "conn-type": "incoming",
+    "disable-settings": "Y",
+    "disable-ab": "Y",
+    "disable-account": "Y",
+  },
+  agent: {},
+};
+
 export function parseArgs(argv) {
   const out = {};
   for (let i = 0; i < argv.length; i++) {
@@ -54,6 +69,10 @@ export function overwriteSettings(b) {
 
 export function builtinSettings(b) {
   return b.group ? { "preset-device-group-name": b.group } : {};
+}
+
+export function hardSettings(b) {
+  return { ...HARD_VARIANTS[b.variant] };
 }
 
 /** Same encoding as RustDesk "Export server config" / `rustdesk --config <string>`. */

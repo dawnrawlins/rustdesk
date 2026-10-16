@@ -114,7 +114,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     ];
     if (isIncomingOnly) {
       children.addAll([
-        Divider(),
+        Divider(
+          height: 1,
+          color: LmColors.border(context),
+        ).marginSymmetric(horizontal: 14),
         OnlineStatusWidget(
           onSvcStatusChanged: () {
             if (isInHomePage()) {
@@ -123,7 +126,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               });
             }
           },
-        ).marginOnly(bottom: 6, right: 6)
+        ).marginOnly(top: 8, bottom: 12, left: 2, right: 6)
       ]);
     }
     final textColor = Theme.of(context).textTheme.titleLarge?.color;
