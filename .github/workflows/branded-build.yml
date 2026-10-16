@@ -72,14 +72,6 @@ jobs:
           echo "::add-mask::$RD_ENROLL_TOKEN"
           node branding/patch-rustdesk.mjs --rustdesk-dir .
 
-      - name: Give this variant its own release tag
-        # client and agent builds would otherwise overwrite each other under "nightly".
-        run: |
-          tag="brand-${{ inputs.slug }}-${{ inputs.variant }}"
-          sed -i "s/upload-tag: \"nightly\"/upload-tag: \"$tag\"/" .github/workflows/flutter-nightly.yml
-          grep -q "upload-tag: \"$tag\"" .github/workflows/flutter-nightly.yml || { echo "::error::could not set upload-tag in flutter-nightly.yml"; exit 1; }
-          echo "Installers will be published to the GitHub release tagged $tag" >> "$GITHUB_STEP_SUMMARY"
-
       - name: Push branch
         id: push
         run: |
@@ -95,5 +87,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run flutter-nightly.yml --ref "${{ steps.push.outputs.branch }}"
-          echo "Build dispatched on ${{ steps.push.outputs.branch }} - when the 'Flutter Nightly Build' run finishes, import the installers in GCCare -> Releases -> Import latest app build (${{ inputs.variant }})." >> "$GITHUB_STEP_SUMMARY"
+          # client and agent builds would otherwise overwrite each other under "nightly".
+          tag="brand-${{ inputs.slug }}-${{ inputs.variant }}"
+          gh workflow run flutter-nightly.yml --ref "${{ steps.push.outputs.branch }}" -f upload-tag="$tag"
+          echo "Build dispatched on ${{ steps.push.outputs.branch }}; installers go to the GitHub release tagged $tag. When the 'Flutter Nightly Build' run finishes, import them in GCCare -> Releases -> Import latest app build (${{ inputs.variant }})." >> "$GITHUB_STEP_SUMMARY"
