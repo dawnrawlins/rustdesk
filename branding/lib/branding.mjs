@@ -1,4 +1,5 @@
 // Shared helpers for building per-company RustDesk client settings.
+import fs from "node:fs";
 
 export const VARIANTS = {
   // End-user build: whoever runs it can only accept incoming sessions by clicking.
@@ -35,9 +36,13 @@ export function parseArgs(argv) {
   return out;
 }
 
-/** Resolves options from CLI flags, falling back to environment variables. */
+/**
+ * Resolves options from CLI flags, falling back to environment variables, then to `--brand-file`
+ * (the branding/brand.json written by a previous run; used by the build workflow).
+ */
 export function resolveBrand(args, env = process.env) {
-  const pick = (flag, envName) => args[flag] ?? env[envName] ?? "";
+  const base = args["brand-file"] ? JSON.parse(fs.readFileSync(args["brand-file"], "utf8")) : {};
+  const pick = (flag, envName, baseKey = flag) => args[flag] ?? env[envName] ?? base[baseKey] ?? "";
   const host = pick("host", "RD_HOST");
   const relay = pick("relay", "RD_RELAY") || (host ? `${host.split(":")[0]}:21117` : "");
   const key = pick("key", "RD_KEY");
@@ -46,14 +51,17 @@ export function resolveBrand(args, env = process.env) {
   const token = pick("token", "RD_ENROLL_TOKEN");
   if (!api && apiBase && token) api = `${apiBase.replace(/\/+$/, "")}/r/${token}`;
   const variant = pick("variant", "RD_VARIANT") || "client";
-  const appName = pick("app-name", "RD_APP_NAME");
+  const appName = pick("app-name", "RD_APP_NAME", "appName");
   const group = pick("group", "RD_DEVICE_GROUP");
 
   const missing = [["host", host], ["key", key], ["api (or api-base + token)", api]].filter(([, v]) => !v).map(([n]) => n);
   if (missing.length) throw new Error(`Missing required option(s): ${missing.join(", ")}`);
   if (!(variant in VARIANTS)) throw new Error(`--variant must be one of: ${Object.keys(VARIANTS).join(", ")}`);
   if (!/^https?:\/\//.test(api)) throw new Error("--api must be an absolute http(s) URL");
-  return { host, relay, key, api, variant, appName, group };
+  // Public website: replaces every rustdesk.com / GitHub link in the app (docs, privacy, download, update checks).
+  const site = (pick("site", "RD_SITE") || new URL(api).origin).replace(/\/+$/, "");
+  if (!/^https?:\/\//.test(site)) throw new Error("--site must be an absolute http(s) URL");
+  return { host, relay, key, api, variant, appName, group, site };
 }
 
 /** Settings forced on every launch (users cannot change them in the UI). */
@@ -63,8 +71,14 @@ export function overwriteSettings(b) {
     "relay-server": b.relay,
     key: b.key,
     "api-server": b.api,
+    "allow-auto-update": "N",
     ...VARIANTS[b.variant],
   };
+}
+
+/** Local (per-machine) settings forced on every launch: no update checks, no WebRTC/STUN. */
+export function overwriteLocalSettings() {
+  return { "enable-check-update": "N", "enable-webrtc": "N" };
 }
 
 /** Compile-time defaults. `auto-install` makes the downloaded file install itself on first run (see src/core_main.rs). */

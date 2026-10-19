@@ -12,6 +12,10 @@ on:
       publish-update-metadata:
         type: boolean
         default: false
+      windows-only:
+        # Branded builds: only the Windows Flutter installers (exe + msi) are produced.
+        type: boolean
+        default: false
 
 # NOTE: F-Droid builder script 'flutter/build_fdroid.sh' reads environment
 # variables from this workflow!
@@ -97,6 +101,7 @@ jobs:
   generate-sbom:
     needs: [validate-update-metadata-keys]
     runs-on: ubuntu-latest
+    if: ${{ !inputs.windows-only }}
 
     permissions:
       contents: write
@@ -189,6 +194,13 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           submodules: recursive
+
+      - name: Apply branding
+        # Brand branches carry branding/brand.json (written by branding/patch-rustdesk.mjs); re-running the
+        # patch here de-brands the freshly checked-out sources, including the hbb_common submodule.
+        shell: pwsh
+        run: |
+          if (Test-Path branding/brand.json) { node branding/patch-rustdesk.mjs --rustdesk-dir . --brand-file branding/brand.json }
 
       - name: Restore bridge files
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -461,8 +473,21 @@ jobs:
         # is x64 / ARM64; the produced Package.msi is globbed since its bin/<platform>/ dir varies.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
+          # Branded build: the MSI must install <AppName>.exe (see "Build self-extracted executable").
+          $appName = if (Test-Path branding/APP_NAME) { (Get-Content branding/APP_NAME -Raw).Trim() } else { '' }
+          $dist = './rustdesk'
+          if ($appName -and $appName -ne 'rustdesk') {
+            $dist = './rustdesk-msi-dist'
+            if (Test-Path $dist) { Remove-Item -Recurse -Force $dist }
+            Copy-Item -Recurse ./rustdesk $dist
+            Move-Item "$dist/rustdesk.exe" "$dist/$appName.exe"
+          }
           pushd ./res/msi
-          python preprocess.py --arp -d ../../rustdesk
+          if ($appName -and $appName -ne 'rustdesk') {
+            python preprocess.py --arp -d "../../rustdesk-msi-dist" --app-name "$appName"
+          } else {
+            python preprocess.py --arp -d ../../rustdesk
+          }
           nuget restore msi.sln
           $msiPlatform = if ('${{ matrix.job.arch }}' -eq 'aarch64') { 'ARM64' } else { 'x64' }
           msbuild msi.sln -p:Configuration=Release -p:Platform=$msiPlatform /p:TargetVersion=Windows10
@@ -555,6 +580,7 @@ jobs:
     name: ${{ matrix.job.target }} (${{ matrix.job.os }})
     needs: [validate-update-metadata-keys]
     runs-on: ${{ matrix.job.os }}
+    if: ${{ !inputs.windows-only }}
     # Temporarily disable this action due to additional test is needed.
     # if: false
     strategy:
@@ -733,7 +759,7 @@ jobs:
             ./SignOutput/rustdesk-*.exe
 
   build-rustdesk-ios:
-    if: ${{ inputs.upload-artifact }}
+    if: ${{ inputs.upload-artifact && !inputs.windows-only }}
     name: build rustdesk ios ipa
     runs-on: ${{ matrix.job.os }}
     needs: [generate-bridge]
@@ -858,6 +884,7 @@ jobs:
     name: ${{ matrix.job.target }}
     runs-on: ${{ matrix.job.os }}
     needs: [generate-bridge]
+    if: ${{ !inputs.windows-only }}
     strategy:
       fail-fast: false
       matrix:
@@ -1127,7 +1154,7 @@ jobs:
   publish-signed-update-metadata:
     needs: [build-for-windows-flutter, build-for-windows-sciter, build-for-macOS]
     runs-on: ubuntu-22.04
-    if: ${{ inputs.upload-artifact && inputs.publish-update-metadata && github.repository == 'rustdesk/rustdesk' }}
+    if: ${{ inputs.upload-artifact && inputs.publish-update-metadata && github.repository == 'rustdesk/rustdesk' && !inputs.windows-only }}
     concurrency:
       group: signed-update-${{ inputs.upload-tag }}
       cancel-in-progress: false
@@ -1265,7 +1292,7 @@ jobs:
       - build-for-windows-flutter
       - build-for-windows-sciter
     runs-on: ubuntu-latest
-    if: ${{ inputs.upload-artifact }}
+    if: ${{ inputs.upload-artifact && !inputs.windows-only }}
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -1324,6 +1351,7 @@ jobs:
     needs: [generate-bridge]
     name: build rustdesk android apk ${{ matrix.job.target }}
     runs-on: ${{ matrix.job.os }}
+    if: ${{ !inputs.windows-only }}
     strategy:
       fail-fast: false
       matrix:
@@ -1616,7 +1644,7 @@ jobs:
   build-rustdesk-android-universal:
     needs: [build-rustdesk-android]
     name: build rustdesk android universal apk
-    if: ${{ inputs.upload-artifact }}
+    if: ${{ inputs.upload-artifact && !inputs.windows-only }}
     runs-on: ubuntu-24.04
     env:
       reltype: release
@@ -1802,6 +1830,7 @@ jobs:
     needs: [generate-bridge]
     name: build rustdesk linux ${{ matrix.job.target }}
     runs-on: ${{ matrix.job.on }}
+    if: ${{ !inputs.windows-only }}
     strategy:
       fail-fast: false
       matrix:
@@ -2151,6 +2180,7 @@ jobs:
     needs: [generate-bridge]
     name: build rustdesk linux drm x86_64
     runs-on: ubuntu-22.04
+    if: ${{ !inputs.windows-only }}
     steps:
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
@@ -2467,7 +2497,7 @@ jobs:
           path: ${{ env.DRM_DEB }}
 
   build-rustdesk-linux-sciter:
-    if: ${{ inputs.upload-artifact }}
+    if: ${{ inputs.upload-artifact && !inputs.windows-only }}
     needs: [validate-update-metadata-keys]
     runs-on: ${{ matrix.job.on }}
     name: build-rustdesk-linux-sciter ${{ matrix.job.target }}
@@ -2713,7 +2743,7 @@ jobs:
     name: Build appimage ${{ matrix.job.target }}
     needs: [build-rustdesk-linux]
     runs-on: ubuntu-22.04
-    if: ${{ inputs.upload-artifact }}
+    if: ${{ inputs.upload-artifact && !inputs.windows-only }}
     strategy:
       fail-fast: false
       matrix:
@@ -2768,7 +2798,7 @@ jobs:
       - build-rustdesk-linux
       - build-rustdesk-linux-sciter
     runs-on: ${{ matrix.job.on }}
-    if: ${{ inputs.upload-artifact }}
+    if: ${{ inputs.upload-artifact && !inputs.windows-only }}
     strategy:
       fail-fast: false
       matrix:

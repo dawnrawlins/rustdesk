@@ -1,15 +1,17 @@
 name: Flutter Nightly Build
 
 on:
-  schedule:
-    # schedule build every night
-    - cron: "0 0 * * *"
   workflow_dispatch:
     inputs:
       upload-tag:
         description: GitHub release tag to publish the installers to
         required: false
         default: nightly
+      windows-only:
+        description: Build only the Windows Flutter installers (branded builds)
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   run-flutter-nightly-build:
@@ -18,3 +20,4 @@ jobs:
     with:
       upload-artifact: true
       upload-tag: ${{ inputs.upload-tag || 'nightly' }}
+      windows-only: ${{ inputs.windows-only || false }}
