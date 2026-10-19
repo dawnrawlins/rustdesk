@@ -431,10 +431,18 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
           sed -i '/dpiAware/d' res/manifest.xml
+          # A branded build (branding/APP_NAME, written by branding/patch-rustdesk.mjs) must run as
+          # <AppName>.exe: the installer, shortcuts, service and the <appname>:// link handler all
+          # point at that file. Pack a renamed copy so the MSI steps below keep their stock layout.
+          app_exe="$(tr -d '\r\n' < branding/APP_NAME 2>/dev/null || true)"
+          app_exe="${app_exe:-rustdesk}"
+          rm -rf ./rustdesk-pack && cp -r ./rustdesk ./rustdesk-pack
+          if [ "$app_exe" != "rustdesk" ]; then mv ./rustdesk-pack/rustdesk.exe "./rustdesk-pack/$app_exe.exe"; fi
           pushd ./libs/portable
           pip3 install -r requirements.txt
-          python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/rustdesk.exe
+          python3 ./generate.py -f ../../rustdesk-pack/ -o . -e "../../rustdesk-pack/$app_exe.exe"
           popd
+          rm -rf ./rustdesk-pack
           mkdir -p ./SignOutput
           mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.exe
 

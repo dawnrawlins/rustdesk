@@ -79,7 +79,8 @@ jobs:
           git config user.name "branding-bot"
           git config user.email "branding-bot@users.noreply.github.com"
           git checkout -B "$branch"
-          git commit -am "Branding: ${{ inputs.slug }} (${{ inputs.variant }})"
+          git add -A src/common.rs branding/APP_NAME
+          git commit -m "Branding: ${{ inputs.slug }} (${{ inputs.variant }})"
           git push -f origin "$branch"
           echo "branch=$branch" >> "$GITHUB_OUTPUT"
 

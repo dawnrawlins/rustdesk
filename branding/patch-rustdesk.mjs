@@ -75,6 +75,14 @@ function main() {
     return;
   }
   fs.writeFileSync(file, after);
+  // Read by the Windows packaging step so the program ships as <AppName>.exe (see flutter-build.yml).
+  const appNameFile = path.join(dir, "branding", "APP_NAME");
+  if (brand.appName) {
+    fs.mkdirSync(path.dirname(appNameFile), { recursive: true });
+    fs.writeFileSync(appNameFile, `${brand.appName.replace(/[\\/:*?"<>|]+/g, "").trim()}\n`);
+  } else if (fs.existsSync(appNameFile)) {
+    fs.unlinkSync(appNameFile);
+  }
   console.log(`Patched ${path.relative(process.cwd(), file)} (${brand.variant} build)`);
   console.log(`  id server : ${brand.host}\n  relay     : ${brand.relay}\n  api server: ${brand.api}`);
   if (brand.appName) console.log(`  app name  : ${brand.appName}`);
