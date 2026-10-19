@@ -67,8 +67,9 @@ export function overwriteSettings(b) {
   };
 }
 
+/** Compile-time defaults. `auto-install` makes the downloaded file install itself on first run (see src/core_main.rs). */
 export function builtinSettings(b) {
-  return b.group ? { "preset-device-group-name": b.group } : {};
+  return { "auto-install": "Y", ...(b.group ? { "preset-device-group-name": b.group } : {}) };
 }
 
 export function hardSettings(b) {

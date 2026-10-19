@@ -138,6 +138,25 @@ pub fn core_main() -> Option<CoreMainAction> {
         args.push("--install".to_owned());
         flutter_args.push("--install".to_string());
     }
+    // A branded build with the builtin option `auto-install` = Y installs itself the first time
+    // the downloaded file is run: elevation prompt, then service, tray, shortcuts and the
+    // <appname>:// handler are set up and the installed app opens. No "Install" click needed.
+    // If the user declines elevation or the install fails, fall back to running portable.
+    #[cfg(windows)]
+    if args.is_empty()
+        && !_is_elevate
+        && !_is_run_as_system
+        && !_is_quick_support
+        && !config::is_disable_installation()
+        && crate::get_builtin_option("auto-install") == "Y"
+        && !crate::platform::is_installed()
+    {
+        let options = crate::platform::get_silent_install_options(None);
+        match crate::platform::install_me(options, "".to_owned(), false, false) {
+            Ok(()) => return None,
+            Err(err) => eprintln!("Automatic installation failed, running portable: {err}"),
+        }
+    }
     if args.contains(&"--noinstall".to_string()) {
         args.clear();
     }
