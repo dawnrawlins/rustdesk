@@ -31,6 +31,10 @@ on:
       app_name:
         description: Window title / app name (optional)
         required: false
+      all_platforms:
+        description: Also build macOS, Android and Linux (Windows only when off)
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -94,5 +98,5 @@ jobs:
           tag="brand-${{ inputs.slug }}-${{ inputs.variant }}"
           # GitHub disables scheduled workflows on quiet repos; a dispatch against a disabled workflow is a 422.
           gh workflow enable flutter-nightly.yml || true
-          gh workflow run flutter-nightly.yml --ref "${{ steps.push.outputs.branch }}" -f upload-tag="$tag" -f windows-only=true
+          gh workflow run flutter-nightly.yml --ref "${{ steps.push.outputs.branch }}" -f upload-tag="$tag" -f windows-only=${{ !inputs.all_platforms }}
           echo "Build dispatched on ${{ steps.push.outputs.branch }}; installers go to the GitHub release tagged $tag. When the 'Flutter Nightly Build' run finishes, import them in GCCare -> Releases -> Import latest app build (${{ inputs.variant }})." >> "$GITHUB_STEP_SUMMARY"

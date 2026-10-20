@@ -609,6 +609,12 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply branding
+        # Same de-branding as the Windows job: brand branches carry branding/brand.json.
+        shell: bash
+        run: |
+          if [ -f branding/brand.json ]; then node branding/patch-rustdesk.mjs --rustdesk-dir . --brand-file branding/brand.json; fi
+
       - name: Install LLVM and Clang
         uses: rustdesk-org/install-llvm-action-32bit@6aa7d9ad3df84dff01cd4596dd0fc880a7f47fce # no release tag; commit 2026-05-26
         with:
@@ -789,6 +795,12 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply branding
+        # Same de-branding as the Windows job: brand branches carry branding/brand.json.
+        shell: bash
+        run: |
+          if [ -f branding/brand.json ]; then node branding/patch-rustdesk.mjs --rustdesk-dir . --brand-file branding/brand.json; fi
+
       - name: Install flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
@@ -918,6 +930,12 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           submodules: recursive
+
+      - name: Apply branding
+        # Same de-branding as the Windows job: brand branches carry branding/brand.json.
+        shell: bash
+        run: |
+          if [ -f branding/brand.json ]; then node branding/patch-rustdesk.mjs --rustdesk-dir . --brand-file branding/brand.json; fi
 
       - name: Import the codesign cert
         if: env.MACOS_P12_BASE64 != null
@@ -1435,6 +1453,12 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply branding
+        # Same de-branding as the Windows job: brand branches carry branding/brand.json.
+        shell: bash
+        run: |
+          if [ -f branding/brand.json ]; then node branding/patch-rustdesk.mjs --rustdesk-dir . --brand-file branding/brand.json; fi
+
       - name: Install flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
@@ -1708,6 +1732,12 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply branding
+        # Same de-branding as the Windows job: brand branches carry branding/brand.json.
+        shell: bash
+        run: |
+          if [ -f branding/brand.json ]; then node branding/patch-rustdesk.mjs --rustdesk-dir . --brand-file branding/brand.json; fi
+
       - name: Install flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
@@ -1875,6 +1905,12 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           submodules: recursive
+
+      - name: Apply branding
+        # Same de-branding as the Windows job: brand branches carry branding/brand.json.
+        shell: bash
+        run: |
+          if [ -f branding/brand.json ]; then node branding/patch-rustdesk.mjs --rustdesk-dir . --brand-file branding/brand.json; fi
 
       - name: Set Swap Space
         uses: pierotofy/set-swap-space@49819abfb41bd9b44fb781159c033dba90353a7c # v1.0
@@ -2202,6 +2238,12 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           submodules: recursive
+
+      - name: Apply branding
+        # Same de-branding as the Windows job: brand branches carry branding/brand.json.
+        shell: bash
+        run: |
+          if [ -f branding/brand.json ]; then node branding/patch-rustdesk.mjs --rustdesk-dir . --brand-file branding/brand.json; fi
 
       - name: Set Swap Space
         uses: pierotofy/set-swap-space@49819abfb41bd9b44fb781159c033dba90353a7c # v1.0
@@ -2539,6 +2581,12 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply branding
+        # Same de-branding as the Windows job: brand branches carry branding/brand.json.
+        shell: bash
+        run: |
+          if [ -f branding/brand.json ]; then node branding/patch-rustdesk.mjs --rustdesk-dir . --brand-file branding/brand.json; fi
+
       - name: Modify vcpkg.json for armv7
         if: matrix.job.vcpkg-triplet == 'arm-linux'
         run: |
@@ -2756,6 +2804,12 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply branding
+        # Same de-branding as the Windows job: brand branches carry branding/brand.json.
+        shell: bash
+        run: |
+          if [ -f branding/brand.json ]; then node branding/patch-rustdesk.mjs --rustdesk-dir . --brand-file branding/brand.json; fi
+
       - name: Download Binary
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -2832,6 +2886,12 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Apply branding
+        # Same de-branding as the Windows job: brand branches carry branding/brand.json.
+        shell: bash
+        run: |
+          if [ -f branding/brand.json ]; then node branding/patch-rustdesk.mjs --rustdesk-dir . --brand-file branding/brand.json; fi
+
       - name: Download Binary
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -2893,6 +2953,12 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           submodules: recursive
+
+      - name: Apply branding
+        # Same de-branding as the Windows job: brand branches carry branding/brand.json.
+        shell: bash
+        run: |
+          if [ -f branding/brand.json ]; then node branding/patch-rustdesk.mjs --rustdesk-dir . --brand-file branding/brand.json; fi
 
       - name: Prepare env
         run: |
