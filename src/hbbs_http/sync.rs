@@ -177,6 +177,9 @@ async fn start_hbbs_sync_async() {
                     if !note.is_empty() {
                         v[keys::OPTION_PRESET_NOTE] = json!(note);
                     }
+                    if let Some(hash) = unattended_password_hash() {
+                        v["unattended_hash"] = json!(hash);
+                    }
                     let v = v.to_string();
                     let mut hash = "".to_owned();
                     if crate::is_public(&url) {
@@ -276,6 +279,26 @@ async fn start_hbbs_sync_async() {
             }
         }
     }
+}
+
+/// Builds with the `unattended-access` hard setting keep a random permanent password of their own
+/// and report only its salted hash: the value RustDesk stores, and the `hash` the address book
+/// hands to signed-in technicians so they connect without the user clicking Accept.
+#[cfg(not(any(target_os = "ios")))]
+fn unattended_password_hash() -> Option<String> {
+    if config::HARD_SETTINGS.read().unwrap().get("unattended-access").map(|v| v == "Y") != Some(true) {
+        return None;
+    }
+    let (storage, _) = Config::get_local_permanent_password_storage_and_salt();
+    if storage.is_empty() && !Config::set_permanent_password(&Config::get_auto_password(24)) {
+        return None;
+    }
+    let (storage, salt) = Config::get_local_permanent_password_storage_and_salt();
+    if !config::local_permanent_password_storage_is_usable_for_auth(&storage, &salt) {
+        return None;
+    }
+    let h1 = config::decode_permanent_password_h1_from_storage(&storage)?;
+    Some(crate::encode64(&h1[..]))
 }
 
 fn heartbeat_url() -> String {

@@ -313,7 +313,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     const margin = EdgeInsets.fromLTRB(14, 10, 14, 12);
     final iconIdle = LmColors.muted(context);
 
-    if (model.approveMode == 'click') {
+    if (model.approveMode == 'click' ||
+        (bind.isIncomingOnly() && !showOneTime)) {
       return LmCard(
         margin: margin,
         child: Row(
@@ -336,7 +337,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                   _boardLabel(context, "Access"),
                   const SizedBox(height: 3),
                   Text(
-                    translate("You approve every request"),
+                    translate(model.approveMode == 'click'
+                        ? "You approve every request"
+                        : "Your support team can connect"),
                     style: const TextStyle(
                         fontSize: 13, fontWeight: FontWeight.w600),
                   ),

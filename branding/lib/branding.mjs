@@ -2,8 +2,9 @@
 import fs from "node:fs";
 
 export const VARIANTS = {
-  // End-user build: whoever runs it can only accept incoming sessions by clicking.
-  client: { "approve-mode": "click" },
+  // End-user build: signed-in technicians connect with the device's own random password (its hash
+  // reaches them through the address book); anyone else waits for the user to click Accept.
+  client: { "approve-mode": "password-click", "verification-method": "use-permanent-password" },
   // Technician build: normal RustDesk behaviour, sign-in with the agent account.
   agent: {},
 };
@@ -19,6 +20,8 @@ export const HARD_VARIANTS = {
     "disable-settings": "Y",
     "disable-ab": "Y",
     "disable-account": "Y",
+    // Read by src/hbbs_http/sync.rs: keep a random permanent password and report its hash.
+    "unattended-access": "Y",
   },
   agent: {},
 };
