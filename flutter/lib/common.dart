@@ -2597,7 +2597,9 @@ connect(BuildContext context, String id,
       }
     } catch (_) {}
   }
-  id = id.replaceAll(' ', '');
+  // Strip every whitespace kind, not just the display spaces: a pasted ID often carries a
+  // trailing newline or a non-breaking space, which otherwise reaches the server as a wrong ID.
+  id = id.replaceAll(RegExp(r'[\s\u00A0]'), '');
   final oldId = id;
   id = await bind.mainHandleRelayId(id: id);
   forceRelay = id != oldId || forceRelay;

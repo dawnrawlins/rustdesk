@@ -236,6 +236,31 @@ export function debrand(dir, brand) {
       if (n) write(file, before, src, rel, n);
     }
   }
+
+  // f. Deep-link URL scheme. Windows registers it at install time from the app name
+  //    (src/platform/windows.rs), but macOS and Android bake it in at build time. Keep all
+  //    three in sync with get_uri_scheme() in src/common.rs: lower-case, spaces removed.
+  if (brand.appName) {
+    const scheme = brand.appName.toLowerCase().replace(/ /g, "");
+    {
+      const rel = "flutter/macos/Runner/Info.plist";
+      const [file, before] = readSource(dir, rel);
+      const [src, n] = replaceOrFail(
+        rel,
+        before,
+        /(<key>CFBundleURLSchemes<\/key>\s*<array>\s*<string>)rustdesk(<\/string>)/,
+        (_m, open, close) => `${open}${scheme}${close}`,
+        (s) => s.includes(`<string>${scheme}</string>`),
+      );
+      write(file, before, src, rel, n);
+    }
+    {
+      const rel = "flutter/android/app/src/main/AndroidManifest.xml";
+      const [file, before] = readSource(dir, rel);
+      const [src, n] = replaceOrFail(rel, before, /android:scheme="rustdesk"/, `android:scheme="${scheme}"`, (s) => s.includes(`android:scheme="${scheme}"`));
+      write(file, before, src, rel, n);
+    }
+  }
   return summary;
 }
 
