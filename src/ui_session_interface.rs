@@ -1981,7 +1981,12 @@ pub async fn io_loop<T: InvokeUiSession>(handler: Session<T>, round: u32) {
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     let (sender, mut receiver) = mpsc::unbounded_channel::<Data>();
     *handler.sender.write().unwrap() = Some(sender.clone());
-    let token = LocalConfig::get_option("access_token");
+    // The login token is a RustDesk Server Pro field: Pro verifies it on the punch and relay
+    // requests, and a token-carrying request first demands the ID server's key exchange
+    // (client.rs `legacy_secure`). The open-source hbbs this build talks to ignores the token
+    // and offers no key exchange, so a signed-in technician would wait on "Failed to secure tcp".
+    // Keep the token out of rendezvous traffic; the address book password does not depend on it.
+    let token = String::new();
     let key = crate::get_key(false).await;
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     if handler.is_port_forward() {
