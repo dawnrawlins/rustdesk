@@ -1825,6 +1825,7 @@ pub fn run_after_install() -> ResultType<()> {
 }
 
 pub fn run_before_uninstall() -> ResultType<()> {
+    crate::hbbs_http::sync::report_device_offline();
     run_cmds(get_before_uninstall(true), true, "before_install")
 }
 
@@ -1903,6 +1904,7 @@ fn get_uninstall(kill_self: bool, uninstall_printer: bool) -> ResultType<String>
 }
 
 pub fn uninstall_me(kill_self: bool) -> ResultType<()> {
+    crate::hbbs_http::sync::report_device_offline();
     run_cmds(get_uninstall(kill_self, true)?, true, "uninstall")
 }
 

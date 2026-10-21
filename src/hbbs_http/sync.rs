@@ -301,6 +301,28 @@ fn unattended_password_hash() -> Option<String> {
     Some(crate::encode64(&h1[..]))
 }
 
+/// Tells the portal this install is gone so the device drops offline immediately,
+/// instead of staying green until the presence window expires.
+pub fn report_device_offline() {
+    let url = heartbeat_url();
+    if url.is_empty() {
+        return;
+    }
+    let id = Config::get_id();
+    if id.is_empty() {
+        return;
+    }
+    let body = json!({
+        "id": id,
+        "uuid": crate::encode64(hbb_common::get_uuid()),
+        "online": false,
+    })
+    .to_string();
+    if let Err(err) = crate::post_request_sync(url, body, "") {
+        log::warn!("Failed to report device offline before uninstall: {err}");
+    }
+}
+
 fn heartbeat_url() -> String {
     let url = crate::common::get_api_server(
         Config::get_option("api-server"),
