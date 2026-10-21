@@ -85,7 +85,10 @@ jobs:
           git config user.name "branding-bot"
           git config user.email "branding-bot@users.noreply.github.com"
           git checkout -B "$branch"
-          git add -A src/common.rs branding/APP_NAME branding/brand.json
+          # Only these files reach the build. common.rs carries the runtime config; the plist and
+          # manifest carry the deep-link URL scheme (Windows registers its scheme at install time).
+          git add -A src/common.rs branding/APP_NAME branding/brand.json \
+            flutter/macos/Runner/Info.plist flutter/android/app/src/main/AndroidManifest.xml
           git commit -m "Branding: ${{ inputs.slug }} (${{ inputs.variant }})"
           git push -f origin "$branch"
           echo "branch=$branch" >> "$GITHUB_OUTPUT"
