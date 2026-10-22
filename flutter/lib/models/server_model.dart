@@ -403,6 +403,7 @@ class ServerModel with ChangeNotifier {
       if (bind.mainGetLocalOption(key: kOptionDisableFloatingWindow) != 'Y') {
         await checkFloatingWindowPermission();
       }
+      await offerStartOnBoot();
       final res = await parent.target?.dialogManager
           .show<bool>((setState, close, context) {
         submit() => close(true);
@@ -426,6 +427,32 @@ class ServerModel with ChangeNotifier {
         startService();
       }
     }
+  }
+
+  /// A customer build is meant to be reachable with nobody at the phone, so the first time the
+  /// service is started it asks for the two permissions Android needs to bring the service back
+  /// after a reboot and turns "Start on boot" on. Asked once; the Settings toggle rules after
+  /// that. Android still asks for screen-capture consent on each start; no app can skip that.
+  Future<void> offerStartOnBoot() async {
+    if (!isAndroid || !bind.isIncomingOnly()) return;
+    const offered = 'start-on-boot-offered';
+    if (bind.mainGetLocalOption(key: offered) == 'Y') return;
+    await bind.mainSetLocalOption(key: offered, value: 'Y');
+    if (await parent.target?.invokeMethod(AndroidChannel.kGetStartOnBootOpt) ==
+        true) {
+      return;
+    }
+    if (!await AndroidPermissionManager.check(
+            kRequestIgnoreBatteryOptimizations) &&
+        !await AndroidPermissionManager.request(
+            kRequestIgnoreBatteryOptimizations)) {
+      return;
+    }
+    if (!await AndroidPermissionManager.check(kSystemAlertWindow) &&
+        !await AndroidPermissionManager.request(kSystemAlertWindow)) {
+      return;
+    }
+    await parent.target?.invokeMethod(AndroidChannel.kSetStartOnBootOpt, true);
   }
 
   /// Start the screen sharing service.

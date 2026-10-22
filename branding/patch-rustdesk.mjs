@@ -254,10 +254,20 @@ export function debrand(dir, brand) {
       );
       write(file, before, src, rel, n);
     }
+    // The Android launcher label, the input (accessibility) service label and the strings the
+    // system shows in its permission dialogs are literal "RustDesk" in the manifest/resources.
+    const xmlName = brand.appName.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     {
       const rel = "flutter/android/app/src/main/AndroidManifest.xml";
       const [file, before] = readSource(dir, rel);
-      const [src, n] = replaceOrFail(rel, before, /android:scheme="rustdesk"/, `android:scheme="${scheme}"`, (s) => s.includes(`android:scheme="${scheme}"`));
+      let [src, n] = replaceOrFail(rel, before, /android:scheme="rustdesk"/, `android:scheme="${scheme}"`, (s) => s.includes(`android:scheme="${scheme}"`));
+      const [src2, n2] = replaceOrFail(rel, src, /android:label="RustDesk( Input)?"/g, (_m, input) => `android:label="${xmlName}${input ?? ""}"`, (s) => s.includes(`android:label="${xmlName}"`));
+      write(file, before, src2, rel, n + n2);
+    }
+    {
+      const rel = "flutter/android/app/src/main/res/values/strings.xml";
+      const [file, before] = readSource(dir, rel);
+      const [src, n] = replaceOrFail(rel, before, /RustDesk/g, xmlName, (s) => s.includes(`<string name="app_name">${xmlName}</string>`));
       write(file, before, src, rel, n);
     }
   }

@@ -88,7 +88,8 @@ jobs:
           # Only these files reach the build. common.rs carries the runtime config; the plist and
           # manifest carry the deep-link URL scheme (Windows registers its scheme at install time).
           git add -A src/common.rs branding/APP_NAME branding/brand.json \
-            flutter/macos/Runner/Info.plist flutter/android/app/src/main/AndroidManifest.xml
+            flutter/macos/Runner/Info.plist flutter/android/app/src/main/AndroidManifest.xml \
+            flutter/android/app/src/main/res/values/strings.xml
           git commit -m "Branding: ${{ inputs.slug }} (${{ inputs.variant }})"
           git push -f origin "$branch"
           echo "branch=$branch" >> "$GITHUB_OUTPUT"
